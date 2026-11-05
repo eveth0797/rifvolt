@@ -106,6 +106,17 @@
     P.hp = P.maxHp; P.energy = P.maxEnergy;
     META.runs++; saveMeta();
     startRealm_(startRealm);
+    // Puente con LIFE QUEST: la disciplina real da ventajas en el juego
+    try {
+      const lq = JSON.parse(localStorage.getItem("lifequest.v1") || "null");
+      if (lq && lq.quests && lq.quests.length) {
+        const d = new Date(), k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        const done = (lq.questDone && lq.questDone[k] || []).length, ratio = done / lq.quests.length;
+        if (ratio >= 1) { P.maxHp += 2; P.hp += 2; run.rerolls += 1; setTimeout(() => toast("🌟 Disciplina real (Life Quest 100%): +1 ♥ y +1 re-tirada"), 1200); }
+        else if (ratio >= 0.5) { run.rerolls += 1; setTimeout(() => toast(`✨ Life Quest ${done}/${lq.quests.length}: +1 re-tirada`), 1200); }
+        else setTimeout(() => toast(`💡 Completa tus misiones en Life Quest para ganar ventajas (${done}/${lq.quests.length})`), 1200);
+      }
+    } catch {}
     for (let i = 0; i < upLvl("start"); i++) { const m = W.MODS.filter(x => x.rar < 2)[Math.floor(Math.random() * 10)]; applyMod(m); }
     mode = "play"; showUI("play");
   }
@@ -835,7 +846,12 @@
     g.globalCompositeOperation = "lighter";
     bullets.forEach(b => { g.fillStyle = b.color || "#ff9f1c"; g.beginPath(); g.arc(b.x, b.y, b.r + 1.5, 0, 7); g.globalAlpha = 0.35; g.fill(); g.globalAlpha = 1; g.fillStyle = "#fff"; g.beginPath(); g.arc(b.x, b.y, b.r - 1, 0, 7); g.fill(); });
     bolts.forEach(b => { g.strokeStyle = "#7df9ff"; g.lineWidth = 3; g.beginPath(); g.moveTo(b.x, b.y); g.lineTo(b.x - b.vx * 0.03, b.y - b.vy * 0.03); g.stroke(); g.strokeStyle = "#fff"; g.lineWidth = 1; g.stroke(); });
-    parts.forEach(p => { g.globalAlpha = clamp(p.life / p.max, 0, 1) * (p.ghost ? 0.4 : 1); g.fillStyle = p.color; g.fillRect(p.x - p.sz / 2, p.y - p.sz / 2, p.sz, p.sz); });
+    parts.forEach(p => {
+      g.globalAlpha = clamp(p.life / p.max, 0, 1) * (p.ghost ? 0.4 : 1);
+      const sp2 = p.vx * p.vx + p.vy * p.vy;
+      if (!p.ghost && sp2 > 900) { g.strokeStyle = p.color; g.lineWidth = p.sz; g.beginPath(); g.moveTo(p.x, p.y); g.lineTo(p.x - p.vx * 0.04, p.y - p.vy * 0.04); g.stroke(); g.lineWidth = 1; }
+      else { g.fillStyle = p.color; g.fillRect(p.x - p.sz / 2, p.y - p.sz / 2, p.sz, p.sz); }
+    });
     g.globalAlpha = 1;
     fx.forEach(f => {
       if (f.kind === "lightning") drawLightning(f.x1, f.y1, f.x2, f.y2, f.color, f.life / f.max, f.seed);
@@ -1032,6 +1048,12 @@
     else if (k === "blinker") { g.globalAlpha = 0.6 + 0.4 * Math.sin(time * 10); g.beginPath(); g.moveTo(x, y - r); g.lineTo(x + r, y + r); g.lineTo(x - r, y + r); g.fill(); g.globalAlpha = 1; g.fillStyle = "#000"; g.fillRect(x - 2, y, 4, 2); }
     else if (k === "bomber") { g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); g.fillStyle = "#000"; g.fillRect(x - 1, y - 4, 2, 8); g.fillRect(x - 4, y - 1, 8, 2); }
     g.shadowBlur = 0;
+    if (k !== "turret") { // contorno + ojos que te siguen
+      g.strokeStyle = "rgba(0,0,0,0.7)"; g.lineWidth = 1; g.beginPath(); g.arc(x, y, r + 0.5, 0, 7); g.globalAlpha = 0.35; g.stroke(); g.globalAlpha = 1;
+      const ea = ang(e, P), ex = Math.cos(ea) * r * 0.35, ey = Math.sin(ea) * r * 0.35;
+      g.fillStyle = "#fff"; g.fillRect(x + ex - 3, y + ey - 2, 2, 2); g.fillRect(x + ex + 1, y + ey - 2, 2, 2);
+      g.fillStyle = e.act === 4 || e.charge > 0 || e.tele > 0 ? "#ff2a2a" : "#000"; g.fillRect(x + ex - 3 + Math.sign(ex), y + ey - 2, 1, 1); g.fillRect(x + ex + 1 + Math.sign(ex), y + ey - 2, 1, 1);
+    }
     // ojos: acción de la IA (debug visual sutil)
     if (["turret", "shooter", "blinker", "bomber"].includes(k) && e.cd < 0.35 && e.cd > -0.5 && e.act === 4) { g.strokeStyle = `rgba(255,255,255,${0.5 + 0.5 * Math.sin(time * 30)})`; g.beginPath(); g.arc(x, y, r + 3 + Math.max(0, e.cd) * 10, 0, 7); g.stroke(); }
     if (e.hp < e.maxHp) { g.fillStyle = "#000"; g.fillRect(x - r, y - r - 4, r * 2, 2); g.fillStyle = "#ff4d6d"; g.fillRect(x - r, y - r - 4, r * 2 * clamp(e.hp / e.maxHp, 0, 1), 2); }
