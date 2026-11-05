@@ -241,6 +241,12 @@
       gn, elite, cd: rnd(0.5, 1.5), spawnT: 0.7, flash: 0, t: 0, dmgDealt: 0, born: run.time,
       brain: { s: -1, a: 5, t: 0, rew: 0 }, act: 5, flankSign: Math.random() < 0.5 ? 1 : -1, charge: 0, chargeDir: 0, tele: 0, stun: 0
     };
+    if (elite) {
+      const AFF = ["Blindado", "Veloz", "Vampírico", "Explosivo"]; const n = 1 + (run.cycle > 0 || run.realm > 3 ? 1 : 0);
+      e.affixes = []; while (e.affixes.length < n) { const a = AFF[Math.floor(Math.random() * AFF.length)]; if (!e.affixes.includes(a)) e.affixes.push(a); }
+      if (e.affixes.includes("Blindado")) { e.hp *= 1.5; e.maxHp *= 1.5; }
+      if (e.affixes.includes("Veloz")) { e.spd *= 1.35; e.fireI *= 0.75; }
+    }
     enemies.push(e); return e;
   }
 
@@ -324,6 +330,7 @@
     P.hp -= n; P.inv = 1.0; doShake(5); flash = 0.15; hitstop = 0.06; AU.sfx("hurt");
     burst(P.x, P.y, "#ff4d6d", 16, 110);
     run.combo = 0;
+    if (src && src.affixes && src.affixes.includes("Vampírico")) { src.hp = Math.min(src.maxHp, src.hp + src.maxHp * 0.15); txt(src.x, src.y - 12, "+VIDA", "#ff4d6d"); }
     if (src) { src.dmgDealt = (src.dmgDealt || 0) + n; if (src.brain) src.brain.rew += 1.2; if (src.type && src.type !== "boss") { NX.trackHitBy(W.ENEMIES[src.type].name); } if (src.kind === "boss") src.patHit = true; }
     if (roomStats) roomStats.hits++;
     if (mod("nova")) { enemies.forEach(e => { if (dist(e, P) < 60) damageEnemy(e, 15 * mod("nova"), P, false); }); fx.push({ kind: "ring", x: P.x, y: P.y, r: 0, max: 60, life: 0.3, color: "#7df9ff" }); }
@@ -359,6 +366,7 @@
       if (mod("leech") && Math.random() < 0.15 * mod("leech")) { P.hp = Math.min(P.maxHp, P.hp + 1); txt(P.x, P.y - 10, "+1", "#06d6a0"); }
       if (run.quests.huntType === e.type && !run.quests.huntDone) { run.quests.hunt++; if (run.quests.hunt >= run.quests.huntGoal) completeQuest("hunt"); }
       if (e.kind === "splitter" && !e.child) { for (let i = 0; i < 2; i++) { const c = spawnEnemy("slime", NX.scale(room.D), room.D, false, { x: e.x + rnd(-6, 6), y: e.y + rnd(-6, 6) }); c.r *= 0.65; c.hp = c.maxHp = e.maxHp * 0.35; c.child = true; c.spawnT = 0.1; c.spd *= 1.3; } }
+      if (e.affixes && e.affixes.includes("Explosivo")) { for (let i = 0; i < 12; i++) shoot(e, i * 0.5236, 90); fx.push({ kind: "ring", x: e.x, y: e.y, r: 0, max: 40, life: 0.35, color: "#ff9f1c" }); }
       if (hasMut("volatile") || e.kind === "bomber") { fx.push({ kind: "ring", x: e.x, y: e.y, r: 0, max: 26, life: 0.35, color: "#ff4d6d" }); if (dist(e, P) < 26) hurtPlayer(1, e); }
       run.score += Math.round(e.def.xp * 10 * mult);
     } else {
@@ -422,6 +430,7 @@
     setDoors("open"); AU.sfx("door"); AU.setIntensity(0.6); setTimeout(saveRun, 0);
     enemies.forEach(e => { if (e.gn && !e.dead) NX.reportGenome(e.type, e.gn.idx, e.gn.gen, e.dmgDealt * 5); });
     if (Math.random() < 0.25) pickups.push({ kind: "h", x: VW / 2, y: RH * T / 2, vx: 0, vy: 0, t: 0 });
+    if (!isBoss && (room.type === "elite" || Math.random() < 0.14 + upLvl("luck") * 0.02)) { const sp = freeSpot(40); pickups.push({ kind: "chest", x: sp.x, y: sp.y, vx: 0, vy: 0, t: 0 }); AU.sfx("pickup"); txt(sp.x, sp.y - 12, "¡COFRE!", "#ffd60a", true); }
     NX.save();
   }
   function completeQuest(q) {
@@ -631,11 +640,12 @@
     pickups.forEach(p => {
       p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.9; p.vy *= 0.9;
       const d = dist(p, P);
-      if (p.t > 0.3 && d < st.magnet + (room.cleared ? 400 : 0) * (p.kind === "e" ? 1 : 0)) { const a = ang(p, P), s = 160 + (1 - d / 400) * 100; p.x += Math.cos(a) * s * dt; p.y += Math.sin(a) * s * dt; }
+      if (p.kind !== "chest" && p.t > 0.3 && d < st.magnet + (room.cleared ? 400 : 0) * (p.kind === "e" ? 1 : 0)) { const a = ang(p, P), s = 160 + (1 - d / 400) * 100; p.x += Math.cos(a) * s * dt; p.y += Math.sin(a) * s * dt; }
       if (d < P.r + 5) {
         p.got = true;
         if (p.kind === "e") { gainXP(p.v); AU.sfx("pickup"); }
         if (p.kind === "h") { P.hp = Math.min(P.maxHp, P.hp + 2); txt(P.x, P.y - 10, "+♥", "#ff4d6d"); AU.sfx("pickup"); }
+        if (p.kind === "chest") { burst(p.x, p.y, "#ffd60a", 30, 140); AU.sfx("level"); run.score += 200; setTimeout(() => openLevelUp(true), 150); }
         if (p.kind === "core") { run.cores++; AU.sfx("quest"); toast(`◆ Núcleo de Fase ${run.cores}/3`); run.score += 300; if (run.cores >= 3) { run.bossOpen = true; setDoors(room.cleared ? "open" : "locked"); banner = { t: 3, title: "PUERTA DEL VILLANO ABIERTA", sub: "Busca la sala sellada en el mapa ☠", sub2: "" }; } }
       }
     });
@@ -835,6 +845,7 @@
     // pickups
     pickups.forEach(p => {
       if (p.kind === "e") { g.fillStyle = (time * 10 + p.x) % 2 < 1 ? "#7df9ff" : "#fff"; g.fillRect(p.x - 1, p.y - 1, 3, 3); }
+      if (p.kind === "chest") { const bob = Math.sin(time * 4) * 1; g.fillStyle = "rgba(0,0,0,0.4)"; g.fillRect(p.x - 7, p.y + 5, 14, 2); g.fillStyle = "#8a5a12"; g.fillRect(p.x - 7, p.y - 4 + bob, 14, 9); g.fillStyle = "#ffd60a"; g.fillRect(p.x - 7, p.y - 6 + bob, 14, 3); g.fillRect(p.x - 1, p.y - 2 + bob, 2, 3); g.fillStyle = "#fff"; if ((time * 3) % 1 < 0.2) g.fillRect(p.x + 3, p.y - 6 + bob, 1, 1); }
       if (p.kind === "h") drawHeart(p.x - 4, p.y - 4 + Math.sin(time * 5) * 1.5, 1, "#ff4d6d");
       if (p.kind === "core") { g.save(); g.translate(p.x, p.y + Math.sin(time * 4) * 2); g.rotate(time * 2); g.fillStyle = "#c77dff"; g.shadowColor = "#c77dff"; g.shadowBlur = 10; g.fillRect(-5, -5, 10, 10); g.restore(); }
     });
@@ -943,7 +954,7 @@
     enemies.forEach(e => { if (e.spawnT > 0) return; light(e.x, e.y, e.kind === "boss" ? 70 : 20 + e.r, e.kind === "boss" ? pal.glow : (e.def.color || "#fff"), e.kind === "boss" ? 0.35 : e.elite ? 0.4 : 0.22); });
     bullets.forEach(b => light(b.x, b.y, 12, b.color || "#ff9f1c", 0.5));
     bolts.forEach(b => light(b.x, b.y, 16, "#7df9ff", 0.55));
-    pickups.forEach(p => { if (p.kind === "core") light(p.x, p.y, 24, "#c77dff", 0.6); else if (p.kind === "h") light(p.x, p.y, 12, "#ff4d6d", 0.4); });
+    pickups.forEach(p => { if (p.kind === "chest") light(p.x, p.y, 26, "#ffd60a", 0.45); if (p.kind === "core") light(p.x, p.y, 24, "#c77dff", 0.6); else if (p.kind === "h") light(p.x, p.y, 12, "#ff4d6d", 0.4); });
     hazards.forEach(h => { if (h.kind === "strike" && h.done) light(h.x, h.y, 50, "#fff3a8", 0.8); if (h.own) light(h.x, h.y, 14, "#ff7828", 0.3 * h.life); });
     if (pulse) { const L = room.layout; for (let i = 0; i < L.length; i++) if (L[i] === 2) light((i % RW) * T + 8, Math.floor(i / RW) * T + 8, 18, "#ffd60a", 0.25); }
     for (let i = 0; i < room.layout.length; i++) if (room.layout[i] === 4) light((i % RW) * T + 8, Math.floor(i / RW) * T + 9, 14, pal.glow, 0.2 + 0.1 * Math.sin(time * 3 + i));
@@ -1057,7 +1068,7 @@
     // ojos: acción de la IA (debug visual sutil)
     if (["turret", "shooter", "blinker", "bomber"].includes(k) && e.cd < 0.35 && e.cd > -0.5 && e.act === 4) { g.strokeStyle = `rgba(255,255,255,${0.5 + 0.5 * Math.sin(time * 30)})`; g.beginPath(); g.arc(x, y, r + 3 + Math.max(0, e.cd) * 10, 0, 7); g.stroke(); }
     if (e.hp < e.maxHp) { g.fillStyle = "#000"; g.fillRect(x - r, y - r - 4, r * 2, 2); g.fillStyle = "#ff4d6d"; g.fillRect(x - r, y - r - 4, r * 2 * clamp(e.hp / e.maxHp, 0, 1), 2); }
-    if (e.elite) { g.fillStyle = "#ffd60a"; g.font = `5px ${FONT}`; g.textAlign = "center"; g.fillText("ÉLITE", x, y - r - 6); }
+    if (e.elite) { g.fillStyle = "#ffd60a"; g.font = `5px ${FONT}`; g.textAlign = "center"; g.fillText(e.affixes ? e.affixes.join(" · ").toUpperCase() : "ÉLITE", x, y - r - 6); }
   }
   function drawBoss(e, pal, col) {
     const x = e.x, y = e.y, r = e.r + (e.phase === 2 ? 2 : 0);
@@ -1236,5 +1247,5 @@
   showUI("title");
   requestAnimationFrame(frame);
   if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
-  window.__RV = { get run() { return run; }, get P() { return P; }, get curRoom() { return room; }, goBoss() { run.bossOpen = true; P.x = VW / 2; P.y = RH * T - 30; enterRoom(run.dungeon.boss, -1); }, get enemies() { return enemies; }, newRun, openHub, NX };
+  window.__RV = { get run() { return run; }, get P() { return P; }, get curRoom() { return room; }, dbg: { elite: (t) => spawnEnemy(t || "knight", NX.scale(1200), 1200, true), chest: () => pickups.push({ kind: "chest", x: P.x + 20, y: P.y, vx: 0, vy: 0, t: 0 }) }, goBoss() { run.bossOpen = true; P.x = VW / 2; P.y = RH * T - 30; enterRoom(run.dungeon.boss, -1); }, get enemies() { return enemies; }, newRun, openHub, NX };
 })();

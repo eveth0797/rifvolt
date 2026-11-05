@@ -95,7 +95,10 @@ Abre el panel **NEXUS** (Tab o 🧠) para ver en tiempo real el rating, el piso,
 |---|---|---|
 | Runs cortas + progreso permanente | Roguelites tipo *Hades*, *Dead Cells* | Al morir conservas 🧪 Datos de Investigación para 7 mejoras permanentes |
 | Elegir 1 de 3 mejoras al subir de nivel | *Vampire Survivors*, *Brotato*, *Balatro* | 18 mods de 3 rarezas, con sinergias (Trifásico + Onda Viajera + Arco en Cadena) |
-| Mazmorras de salas cerradas, llaves, jefe | *Zelda*, *The Binding of Isaac*, *Enter the Gungeon* | 3 Núcleos → puerta del jefe; minimapa; salas especiales |
+| Mazmorras de salas cerradas, llaves, jefe | *Zelda*, *The Binding of Isaac*, *Enter the Gungeon* | 3 Núcleos → puerta del jefe; minimapa; salas especiales; cofres de datos |
+| Élites con afijos aleatorios | *Diablo*, *Hades* | Blindado, Veloz, Vampírico, Explosivo (2 afijos en reinos altos) |
+| Logros persistentes | Todos los juegos con progreso | 16 logros que dan 🧪 al desbloquearse |
+| Guardar y continuar | Juegos largos en móvil | Guardado automático al cambiar de sala o de pestaña |
 | Jefes con patrones legibles y fase 2 | *Hollow Knight*, *Cuphead*, *Furi* | 9 tipos de patrón, aviso visual (telegraph) y fase 2 al 50% |
 | "Juice": hit-stop, temblor, partículas | Diseño de *game feel* | Pausa de impacto, críticos, combos, destellos y música que sube de intensidad |
 | Director de IA | *Left 4 Dead* (AI Director), *RE4* (dificultad dinámica) | NEXUS, pero **solo hacia arriba** y con aprendizaje real |
