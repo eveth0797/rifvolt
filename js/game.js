@@ -124,6 +124,34 @@
   }
   const hasMut = id => run && run.mutators.some(m => m.id === id);
 
+  /* ================= GUARDAR / CONTINUAR RUN ================= */
+  const RKEY = "riftvolt.run.v1";
+  function saveRun() {
+    if (!run || !room || mode === "dead") return;
+    try {
+      const rs = run.dungeon.rooms.map(r => ({ c: r.cleared ? 1 : 0, v: r.visited ? 1 : 0, p: r.pylon ? { x: r.pylon.x, y: r.pylon.y, on: r.pylon.on } : null, n: r.npc ? r.npc.talked : null }));
+      const R = Object.assign({}, run, { dungeon: null, mutators: run.mutators.map(m => m.id) });
+      localStorage.setItem(RKEY, JSON.stringify({ run: R, P, rs, cur: [room.x, room.y], t: Date.now() }));
+    } catch {}
+  }
+  const clearRun = () => { try { localStorage.removeItem(RKEY); } catch {} };
+  const savedRun = () => { try { return JSON.parse(localStorage.getItem(RKEY) || "null"); } catch { return null; } };
+  function loadRun() {
+    const d = savedRun(); if (!d) return false;
+    run = d.run; P = Object.assign(P || {}, d.P);
+    run.dungeon = W.genRealm(run.realm, run.cycle, run.seed + run.realm * 7919 + run.cycle * 104729);
+    run.mutators = (d.run.mutators || []).map(id => NX.MUTATORS.find(m => m.id === id)).filter(Boolean);
+    run.dungeon.rooms.forEach((r, i) => { const st = d.rs[i]; if (!st) return; r.cleared = !!st.c; r.visited = !!st.v; if (st.p) r.pylon = st.p; if (st.n !== null && st.n !== undefined && r.type === "npc") r.npc = { x: VW / 2, y: RH * T / 2 - 20, name: npcName(), talked: st.n }; });
+    const cur = run.dungeon.grid[run.dungeon.key(d.cur[0], d.cur[1])] || run.dungeon.start;
+    const wasCleared = cur.cleared; cur.cleared = wasCleared;
+    enterRoom(cur, -1); P.x = VW / 2; P.y = RH * T / 2; if (!cur.cleared) { const s0 = freeSpot(0); P.x = VW / 2; P.y = RH * T - 30; }
+    P.inv = 1.5; P.dashT = 0; P.swing = 0;
+    AU.playSong(W.hash(W.REALMS[run.realm].id + run.cycle), { scale: W.REALMS[run.realm].scale, intensity: 0.8 });
+    banner = { t: 3, title: "RUN RESTAURADA", sub: W.REALMS[run.realm].name + (run.cycle ? ` · Ciclo ${run.cycle + 1}` : ""), sub2: "NEXUS no olvidó nada mientras no estabas" };
+    mode = "play"; showUI("play"); return true;
+  }
+  addEventListener("visibilitychange", () => { if (document.hidden) { saveRun(); if (mode === "play") openPause(); } });
+
   /* ================= SALAS ================= */
   function neighbor(r, i) { const d = W.DIRS[i]; return run.dungeon.grid[run.dungeon.key(r.x + d[0], r.y + d[1])]; }
   function setDoors(state) {
@@ -160,6 +188,7 @@
     } else { r.cleared = true; setDoors("open"); AU.setIntensity(0.6); }
     buildRoomCache();
     transition = 0.35;
+    setTimeout(saveRun, 0);
   }
   const NPC_NAMES = ["Dra. Lumen", "Ing. Faraday-9", "Prof. Tesla Rho", "Dra. Kirchhoff", "Ing. Ampère Vex", "Dr. Heaviside", "Ing. Nyquist"];
   const npcName = () => NPC_NAMES[(run.realm + run.cycle * 3) % NPC_NAMES.length];
@@ -328,6 +357,7 @@
 
   /* ================= MUERTE / VICTORIA ================= */
   function die() {
+    clearRun();
     mode = "dead"; AU.sfx("die"); NX.playerDied(); META.deaths++;
     if (roomStats) NX.roomResult({ D: room.D, hpLostFrac: 1, died: true, seconds: run.time - roomStats.t0 });
     const gained = run.research + Math.floor(run.roomsCleared * 1.5) + run.bossesKilled * 5;
@@ -377,7 +407,7 @@
       if (roomStats.hits === 0 && !isBoss) { txt(P.x, P.y - 16, "¡SIN DAÑO! +5", "#ffd60a", true); run.electrons += 5; run.score += 100; }
       roomStats = null;
     }
-    setDoors("open"); AU.sfx("door"); AU.setIntensity(0.6);
+    setDoors("open"); AU.sfx("door"); AU.setIntensity(0.6); setTimeout(saveRun, 0);
     enemies.forEach(e => { if (e.gn && !e.dead) NX.reportGenome(e.type, e.gn.idx, e.gn.gen, e.dmgDealt * 5); });
     if (Math.random() < 0.25) pickups.push({ kind: "h", x: VW / 2, y: RH * T / 2, vx: 0, vy: 0, t: 0 });
     NX.save();
@@ -1072,6 +1102,7 @@
   function openHub() {
     mode = "hub"; showUI("hub"); AU.playSong(1234, { scale: "lydian", intensity: 0.5, bpm: 100 });
     $("#hubResearch").textContent = META.research;
+    { const sv = savedRun(); const b = $("#btnContinue"); b.hidden = !sv; if (sv) b.textContent = `▶ CONTINUAR (${W.REALMS[sv.run.realm].name}${sv.run.cycle ? " · C" + (sv.run.cycle + 1) : ""} · Nv ${sv.run.level})`; }
     $("#upgrades").innerHTML = W.UPGRADES.map(u => { const l = upLvl(u.id), cost = Math.round(u.base * Math.pow(1.6, l)); return `<button class="up" data-up="${u.id}" ${l >= u.max || META.research < cost ? "disabled" : ""}><b>${u.name}</b><small>${u.desc}</small><span class="pips">${Array.from({ length: u.max }, (_, i) => `<i class="${i < l ? "on" : ""}"></i>`).join("")}</span><em>${l >= u.max ? "MÁX" : "🧪 " + cost}</em></button>`; }).join("");
     $("#realmSel").innerHTML = W.REALMS.map((r, i) => `<option value="${i}" ${i >= META.unlocked ? "disabled" : ""}>${i + 1}. ${r.name}${i >= META.unlocked ? " 🔒" : ""}</option>`).join("");
     $("#hubStats").innerHTML = `Runs: ${META.runs} · Muertes: ${META.deaths} · Eliminaciones: ${META.kills} · Mejor ciclo: ${META.bestCycle + 1} · Récord: ${META.highScore} · Tiempo: ${Math.round(META.playSec / 60)} min`;
@@ -1083,13 +1114,15 @@
   const on = (id, fn) => $(id).addEventListener("click", () => { AU.init(); AU.sfx("ui"); fn(); });
   on("#btnStart", () => { if (!META.seenIntro) { META.seenIntro = true; saveMeta(); showUI("intro"); } else openHub(); });
   on("#btnIntroGo", () => openHub());
-  on("#btnPlay", () => newRun(+$("#realmSel").value || 0));
+  on("#btnPlay", () => { if (savedRun() && !confirm("Tienes una run guardada. ¿Empezar una nueva y perderla?")) return; clearRun(); newRun(+$("#realmSel").value || 0); });
+  on("#btnContinue", () => { if (!loadRun()) toast("No hay run guardada"); });
   on("#btnDaily", () => { const d = new Date(); newRun(0, `daily-${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`); toast("🗓️ Desafío diario: misma semilla para todos hoy"); });
   on("#btnHubNexus", () => openNexus(false));
   on("#btnNexusClose", () => { if (run && mode === "menu") { mode = "play"; showUI("play"); } else openHub(); });
   on("#btnResume", () => { mode = "play"; showUI("play"); });
   on("#btnPauseNexus", () => openNexus(true));
   on("#btnAbandon", () => { if (confirm("¿Abandonar la run? Conservas los datos de investigación ganados.")) { P.hp = 0; mode = "play"; die(); } });
+  on("#btnSaveQuit", () => { saveRun(); openHub(); toast("💾 Run guardada"); });
   on("#btnDeadHub", () => openHub());
   on("#btnDeadRetry", () => newRun(Math.min(run.realm, META.unlocked - 1)));
   on("#btnHowto", () => showUI("howto"));
