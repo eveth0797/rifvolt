@@ -353,7 +353,8 @@
   function killEnemy(e) {
     e.dead = true; run.kills++; META.kills++;
     run.combo++; run.comboT = 2.5; run.bestCombo = Math.max(run.bestCombo, run.combo);
-    burst(e.x, e.y, e.def.color || "#fff", e.kind === "boss" ? 60 : 18, e.kind === "boss" ? 200 : 110, 0.7); doShake(e.kind === "boss" ? 12 : 2); AU.sfx(e.kind === "boss" ? "explode" : "kill");
+    burst(e.x, e.y, e.def.color || "#fff", e.kind === "boss" ? 60 : 18, e.kind === "boss" ? 200 : 110, 0.7);
+    fx.push({ kind: "ring", x: e.x, y: e.y, r: 0, max: e.kind === "boss" ? 120 : 28 + e.r, life: 0.35, color: e.def.color || "#fff" }); doShake(e.kind === "boss" ? 12 : 2); AU.sfx(e.kind === "boss" ? "explode" : "kill");
     if (e.kind !== "boss") {
       if (e.brain && e.brain.s >= 0) NX.learn(e.type, e.brain.s, e.brain.a, e.brain.rew - 1, 0, true);
       NX.reportGenome(e.type, e.gn.idx, e.gn.gen, e.dmgDealt * 5 + Math.min(30, run.time - e.born) * 0.15);
@@ -883,6 +884,18 @@
     g.restore();
     bloom();
     { const vg = g.createRadialGradient(VW / 2, HUD + RH * T / 2, 90, VW / 2, HUD + RH * T / 2, 240); vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(0,0,0,0.5)"); g.fillStyle = vg; g.fillRect(0, HUD, VW, RH * T); }
+    if (flash > 0.05 || hitstop > 0.05) { // aberración cromática en golpes fuertes
+      g.save(); g.globalCompositeOperation = "lighter"; g.globalAlpha = 0.25;
+      g.drawImage(cv, 0, HUD, VW, RH * T, 2, HUD, VW, RH * T); g.drawImage(cv, 0, HUD, VW, RH * T, -2, HUD, VW, RH * T); g.restore();
+    }
+    if (P.hp <= Math.max(2, P.maxHp * 0.25)) { // peligro: viñeta roja que late
+      const a = 0.25 + 0.2 * Math.sin(time * 8), vg2 = g.createRadialGradient(VW / 2, HUD + RH * T / 2, 80, VW / 2, HUD + RH * T / 2, 230);
+      vg2.addColorStop(0, "rgba(255,0,40,0)"); vg2.addColorStop(1, `rgba(255,0,40,${a})`); g.fillStyle = vg2; g.fillRect(0, HUD, VW, RH * T);
+    }
+    if (enemies.some(e => e.kind === "boss" && e.t < 2.2)) { // franjas cinematográficas al aparecer el jefe
+      const b = enemies.find(e => e.kind === "boss"), k = Math.min(1, b.t < 1.6 ? b.t * 2 : (2.2 - b.t) * 1.6) * 18;
+      g.fillStyle = "#000"; g.fillRect(0, HUD, VW, k); g.fillRect(0, VH - k, VW, k);
+    }
     drawHUD(pal);
     if (banner) drawBanner(pal);
     if (flash > 0) { g.fillStyle = `rgba(255,60,90,${flash * 2})`; g.fillRect(0, 0, VW, VH); }
