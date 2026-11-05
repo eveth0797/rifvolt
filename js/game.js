@@ -241,9 +241,10 @@
     hyper: ["summon", "aimed", "wave", "ring", "barrage"],
     titan: ["strikes", "charge", "wave", "ring"],
     twins: ["aimed", "charge", "mirror", "spiral"],
+    agent: ["masklines", "restore", "aimed", "charge", "masklines"],
     blackout: ["mimic", "strikes", "spiral", "teleport", "charge", "wave", "summon", "barrage"]
   };
-  const ALL_PATTERNS = ["charge", "ring", "aimed", "spiral", "wave", "teleport", "summon", "strikes", "barrage"];
+  const ALL_PATTERNS = ["charge", "ring", "aimed", "spiral", "wave", "teleport", "summon", "strikes", "barrage", "masklines"];
   function spawnBoss() {
     const R = W.REALMS[run.realm];
     const D = NX.roomDifficulty(run.realm, run.cycle, true) + 150; room.D = D;
@@ -363,7 +364,7 @@
     const gained = run.research + Math.floor(run.roomsCleared * 1.5) + run.bossesKilled * 5;
     META.research += gained; META.totalResearch += gained;
     META.highScore = Math.max(META.highScore, run.score);
-    META.bestRealm = Math.max(META.bestRealm, run.realm + run.cycle * 7);
+    META.bestRealm = Math.max(META.bestRealm, run.realm + run.cycle * W.REALMS.length);
     saveMeta(); NX.save();
     const p = NX.profile(), s = NX.state();
     $("#deadStats").innerHTML = `
@@ -391,7 +392,7 @@
     run.bossDead = true; run.bossesKilled++; room.cleared = true;
     const rr = 25 + run.realm * 10 + run.cycle * 30; run.research += rr;
     META.bosses[R.boss] = (META.bosses[R.boss] || 0) + 1; META.codex[R.boss] = "known";
-    META.unlocked = Math.max(META.unlocked, Math.min(7, run.realm + 2));
+    META.unlocked = Math.max(META.unlocked, Math.min(W.REALMS.length, run.realm + 2));
     saveMeta();
     NX.realmCleared(room.D);
     roomCleared(true);
@@ -629,7 +630,7 @@
     let next = run.realm + 1;
     if (next >= W.REALMS.length) { next = 0; run.cycle++; META.bestCycle = Math.max(META.bestCycle, run.cycle); NX.note(`Ciclo ${run.cycle + 1} iniciado. El multiverso se reescribe.`); }
     P.hp = Math.min(P.maxHp, P.hp + Math.ceil(P.maxHp / 2));
-    META.bestRealm = Math.max(META.bestRealm, next + run.cycle * 7); saveMeta();
+    META.bestRealm = Math.max(META.bestRealm, next + run.cycle * W.REALMS.length); saveMeta();
     startRealm_(next);
   }
 
@@ -704,6 +705,8 @@
   /* ================= IA DE JEFES (bandido de patrones) ================= */
   function updateBoss(e, dt) {
     e.cd -= dt;
+    const crit = enemies.filter(x => x.critical && !x.dead);
+    if (crit.length) { e.hp = Math.min(e.maxHp, e.hp + e.maxHp * 0.012 * crit.length * dt); if (Math.random() < 0.15) crit.forEach(c => bolt(c.x, c.y, e.x, e.y, "#00e5d4", 0.08)); }
     if (e.phase === 1 && e.hp < e.maxHp * 0.5) { e.phase = 2; e.cd = 0.5; banner = { t: 2, title: "FASE 2", sub: "El villano se sobrecarga", sub2: "" }; AU.sfx("boss"); doShake(8); e.spd *= 1.25; e.pspd *= 1.15; }
     const d = dist(e, P);
     if (!e.pat && e.cd <= 0) {
@@ -742,6 +745,22 @@
         if (P.swing > 0.1 || (P.boltCd > 0.2 && !D.lock)) { D.lock = 0.4; shoot(e, ang(e, P), e.pspd * 1.2, { r: 4 }); }
         if (D.lock) { D.lock -= dt; if (D.lock <= 0) D.lock = 0; }
         if (e.patT > 3) endPattern(e, 0.8); break; }
+      case "masklines": { // máscara de acciones: líneas prohibidas con pocas casillas libres
+        if (!D.s) { D.s = 1; D.k = 0; AU.sfx("charge"); }
+        if (e.patT > D.k * 0.9 && D.k < (p2 ? 3 : 2)) {
+          const horiz = Math.random() < 0.5, nLines = 2 + (p2 ? 1 : 0) + Math.min(2, run.cycle);
+          for (let l = 0; l < nLines; l++) {
+            if (horiz) { const y = 24 + Math.floor(Math.random() * 9) * 16 + 8; const gap = Math.floor(Math.random() * 20) + 2; for (let x = 16; x < VW - 16; x += 16) { if (Math.abs(x / 16 - gap) < 1.5) continue; hazards.push({ kind: "strike", x, y, r: 9, warn: 1.0, life: 1.3, dmg: 1, src: e }); } }
+            else { const x = 24 + Math.floor(Math.random() * 21) * 16 + 8; const gap = Math.floor(Math.random() * 8) + 2; for (let y = 16; y < RH * T - 16; y += 16) { if (Math.abs(y / 16 - gap) < 1.5) continue; hazards.push({ kind: "strike", x, y, r: 9, warn: 1.0, life: 1.3, dmg: 1, src: e }); } }
+          }
+          D.k++;
+        }
+        if (e.patT > 2.4) endPattern(e, 1.2); break; }
+      case "restore": { // invoca cargas críticas que lo curan
+        if (!D.s) { D.s = 1; const n = 2 + (p2 ? 1 : 0); const sc = NX.scale(room.D * 0.8);
+          for (let i = 0; i < n; i++) { const sp = freeSpot(70); const c = spawnEnemy("turret", sc, room.D * 0.8, false, sp); c.critical = true; c.minion = true; c.hp = c.maxHp = c.maxHp * 1.5; c.def = Object.assign({}, c.def, { name: "Carga Crítica", color: "#00e5d4" }); }
+          banner = { t: 2, title: "RESTAURACIÓN EN CURSO", sub: "¡Destruye las cargas críticas: lo están curando!", sub2: "" }; AU.sfx("quest"); }
+        if (e.patT > 1.2) endPattern(e, 2.0); break; }
       case "mimic": { // El Apagón usa tus propias tácticas: dash hacia tu esquiva favorita + rayos
         if ((D.f = (D.f || 0) + dt) > 0.5) { D.f = 0; const b = NX.dodgeBias(); const k = b.indexOf(Math.max(...b)); const a = k * Math.PI / 4; const pp = { x: P.x + Math.cos(a) * 35, y: P.y + Math.sin(a) * 35 }; const aa = Math.atan2(pp.y - e.y, pp.x - e.x); for (let i = -1; i <= 1; i++) shoot(e, aa + i * 0.15, 260, { r: 3, color: "#7df9ff" }); move(e, Math.cos(aa) * 30, Math.sin(aa) * 30); AU.sfx("bolt"); }
         if (e.patT > 3) endPattern(e, 1.0); break; }
@@ -878,7 +897,7 @@
     const pulse = (time % 2) < 1;
     light(P.x, P.y, 46, "#7df9ff", 0.32);
     if (P.dashT > 0) light(P.x, P.y, 30, "#ffffff", 0.3);
-    if (P.swing > 0) light(P.x + Math.cos(P.swingA) * 14, P.y + Math.sin(P.swingA) * 14, 26, "#ffffff", 0.4);
+    if (P.swing > 0) light(P.x + Math.cos(P.swingA) * 14, P.y + Math.sin(P.swingA) * 14, 22, "#bff", 0.22);
     enemies.forEach(e => { if (e.spawnT > 0) return; light(e.x, e.y, e.kind === "boss" ? 70 : 20 + e.r, e.kind === "boss" ? pal.glow : (e.def.color || "#fff"), e.kind === "boss" ? 0.35 : e.elite ? 0.4 : 0.22); });
     bullets.forEach(b => light(b.x, b.y, 12, b.color || "#ff9f1c", 0.5));
     bolts.forEach(b => light(b.x, b.y, 16, "#7df9ff", 0.55));
@@ -1002,6 +1021,8 @@
     else if (b === "hyper") { g.fillStyle = col; g.fillRect(-r, -r, r * 2, r * 2); g.fillStyle = "#000"; for (let i = 0; i < 4; i++) g.fillRect(-r + 3, -r + 3 + i * 6, r * 2 - 6, 3); g.fillStyle = (time * 4) % 2 < 1 ? "#0f0" : "#f00"; g.fillRect(r - 6, -r + 3, 2, 2); }
     else if (b === "titan") { g.fillStyle = col; g.beginPath(); g.moveTo(-r, r); g.lineTo(-r * 0.4, -r); g.lineTo(0, -r * 0.2); g.lineTo(r * 0.4, -r); g.lineTo(r, r); g.fill(); }
     else if (b === "twins") { g.rotate(time * (e.mirrorSide ? -2 : 2)); g.fillStyle = col; g.beginPath(); for (let i = 0; i < 8; i++) { const rr = i % 2 ? r * 0.5 : r; g.lineTo(Math.cos(i * 0.785) * rr, Math.sin(i * 0.785) * rr); } g.fill(); }
+    else if (b === "agent") { g.rotate(time * 0.8); g.fillStyle = col; g.beginPath(); for (let i = 0; i < 6; i++) g.lineTo(Math.cos(i * 1.047) * r, Math.sin(i * 1.047) * r); g.fill();
+      g.fillStyle = "#000"; for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) if ((i + j + Math.floor(time * 3)) % 2 === 0) g.fillRect(i * 5 - 2, j * 5 - 2, 4, 4); }
     else { // blackout
       g.fillStyle = "#000"; g.beginPath(); g.arc(0, 0, r + 2, 0, 7); g.fill(); g.strokeStyle = pal.acc; g.lineWidth = 2; for (let i = 0; i < 3; i++) { g.beginPath(); g.arc(0, 0, r + 4 + i * 4, time * (i + 1), time * (i + 1) + 2.5); g.stroke(); } g.lineWidth = 1; }
     g.shadowBlur = 0;
@@ -1025,7 +1046,8 @@
   function drawHUD(pal) {
     g.fillStyle = "#05050c"; g.fillRect(0, 0, VW, HUD); g.fillStyle = pal.acc; g.fillRect(0, HUD - 1, VW, 1);
     // vida
-    for (let i = 0; i < P.maxHp / 2; i++) { const v = P.hp - i * 2; drawHeart(4 + i * 10, 3, v >= 2 ? 2 : v === 1 ? 0.5 : 0, "#ff4d6d"); }
+    if (P.maxHp <= 18) { for (let i = 0; i < P.maxHp / 2; i++) { const v = P.hp - i * 2; drawHeart(4 + i * 10, 3, v >= 2 ? 2 : v === 1 ? 0.5 : 0, "#ff4d6d"); } }
+    else { drawHeart(4, 3, 2, "#ff4d6d"); g.font = `6px ${FONT}`; g.textAlign = "left"; g.fillStyle = "#ff8fa3"; g.fillText(`${P.hp}/${P.maxHp}`, 15, 9); }
     // energía
     g.fillStyle = "#1a1a33"; g.fillRect(4, 12, 60, 4); g.fillStyle = "#4cc9f0"; g.fillRect(4, 12, 60 * P.energy / P.maxEnergy, 4);
     // xp
@@ -1163,5 +1185,5 @@
   showUI("title");
   requestAnimationFrame(frame);
   if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
-  window.__RV = { get run() { return run; }, get P() { return P; }, get curRoom() { return room; }, get enemies() { return enemies; }, newRun, openHub, NX };
+  window.__RV = { get run() { return run; }, get P() { return P; }, get curRoom() { return room; }, goBoss() { run.bossOpen = true; P.x = VW / 2; P.y = RH * T - 30; enterRoom(run.dungeon.boss, -1); }, get enemies() { return enemies; }, newRun, openHub, NX };
 })();

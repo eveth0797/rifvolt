@@ -35,11 +35,12 @@ Año 2031. Durante una simulación EMT de un campus hyperscale, el resultado dev
 | 4 | Laberinto Hyperscale | **El Hyperscaler Térmico** | Cargas de data centers de IA, ride-through |
 | 5 | Altiplano del Rayo | **Titán del Impacto** | Sobretensiones atmosféricas, ondas viajeras |
 | 6 | Yermo de Inversores | **Los Gemelos en Fase** | Grid-following vs grid-forming, interacciones de control |
-| 7 | Núcleo del Apagón | **El Apagón**, Espejo de Entropía | Cascadas, black start |
+| 7 | Alimentador 123 | **PPO-Ω**, el Agente Enmascarado | Restauración de cargas críticas con RL (Maskable PPO) y almacenamiento grid-forming |
+| 8 | Núcleo del Apagón | **El Apagón**, Espejo de Entropía | Cascadas, black start |
 
 Cada villano derrotado desbloquea su **registro de investigación** en el Códice: una explicación técnica real del fenómeno.
 
-Tras el reino 7 empieza el **Ciclo 2**, y así indefinidamente: la mazmorra crece, los villanos **se fusionan y roban patrones de ataque entre sí**, y NEXUS sube el piso de dificultad.
+Tras el reino 8 empieza el **Ciclo 2**, y así indefinidamente: la mazmorra crece, los villanos **se fusionan y roban patrones de ataque entre sí**, y NEXUS sube el piso de dificultad.
 
 ---
 
