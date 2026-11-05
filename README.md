@@ -4,6 +4,11 @@
 
 Juega en cualquier navegador (PC, Mac, Android, iPhone) y se instala como app en el celular (PWA, funciona sin conexión). Sin motores ni descargas pesadas: **~100 KB de JavaScript puro**, gráficos y música generados por código.
 
+| | |
+|---|---|
+| ![Título](docs/title.png) | ![Combate](docs/combat.png) |
+| ![Jefe PPO-Ω](docs/boss.png) | ![Panel NEXUS](docs/nexus.png) |
+
 ---
 
 ## 🎮 Cómo jugar
@@ -76,6 +81,9 @@ NEXUS combina **cuatro sistemas de aprendizaje** que se guardan en tu navegador 
 - Histograma de tu **dirección de esquiva**, proporción cuerpo a cuerpo / distancia, precisión, uso de dash, agresividad y némesis.
 - El mutador **Precognición** y el jefe final usan tu esquiva favorita para **apuntar a donde vas a huir**.
 - **Mutaciones del Rift** elegidas según tu estilo. Por ejemplo: si solo disparas → *Égida Fásica* (los enemigos bloquean rayos de frente); si haces dash sin parar → *Suelo Estático*; si eres muy preciso → *Enjambre*.
+
+### 🔗 Conexión con Life Quest
+Si juegas en el mismo navegador que [Life Quest](https://eveth0797.github.io/life-quest/), el juego lee tus misiones del día. Si completas el 50% ganas +1 re-tirada; si completas el 100% (**Disciplina real**), también +1 ♥ máximo. Tu vida real te hace más fuerte en el Voltverso.
 
 Abre el panel **NEXUS** (Tab o 🧠) para ver en tiempo real el rating, el piso, la generación de cada especie, su ε, su táctica dominante, su nivel de amenaza y la bitácora de lo que NEXUS ha decidido.
 
