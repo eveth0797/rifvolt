@@ -1,0 +1,11 @@
+{
+  "name": "RIFTVOLT",
+  "short_name": "RIFTVOLT",
+  "description": "Action-RPG roguelite con IA que aprende de ti.",
+  "start_url": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#04030c",
+  "theme_color": "#04030c",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

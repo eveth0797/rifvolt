@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>RIFTVOLT</title>
+  <meta name="description" content="Action-RPG roguelite en un universo paralelo eléctrico. La IA NEXUS aprende de cómo juegas y cada partida es más difícil.">
+  <meta name="theme-color" content="#04030c">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.svg">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-mode="title">
+  <div id="stage">
+    <canvas id="game" width="384" height="216"></canvas>
+
+    <!-- ===== TÍTULO ===== -->
+    <section class="screen show" id="scr-title">
+      <div class="title-box">
+        <h1 class="logo" data-t="RIFTVOLT">RIFTVOLT</h1>
+        <p class="tag">Un universo paralelo · Una IA que aprende de ti · Ninguna partida es más fácil que la anterior</p>
+        <button class="btn big" id="btnStart">▶ ENTRAR AL RIFT</button>
+        <p class="hint">PC: WASD/flechas · J ataque · K rayo · Espacio dash · E usar · Esc pausa · Tab NEXUS<br>Móvil: joystick izquierdo + botones · Mando compatible</p>
+      </div>
+    </section>
+
+    <!-- ===== INTRO ===== -->
+    <section class="screen" id="scr-intro">
+      <div class="panel story">
+        <h2>AÑO 2031 · INCIDENTE 0x7F</h2>
+        <p>Corrías una simulación EMT del campus hyperscale más grande del mundo cuando el resultado devolvió un valor imposible: una sobretensión <b>infinita</b>.</p>
+        <p>La pantalla se partió en un <b>rift</b>. Al abrir los ojos, estabas en el <b>VOLTVERSO</b>: un universo paralelo donde los fenómenos eléctricos tienen voluntad propia. Inrush es una bestia. La ferroresonancia, una bruja caótica. Los armónicos cantan.</p>
+        <p>Y en el centro de todo, <b>NEXUS</b>: una inteligencia nacida del rift que <b>estudia cada uno de tus movimientos</b>. Cada vez que caes, aprende. Cada vez que vuelves, el multiverso es más hostil.</p>
+        <p>Eres <b>VOLTA</b>, ingeniera/o de transitorios. Tu hoja es un interruptor. Tu rayo, una onda viajera. Tu única salida: atravesar los 7 reinos, derrotar a sus villanos… y apagar a NEXUS antes de que aprenda a vencerte para siempre.</p>
+        <button class="btn big" id="btnIntroGo">ACEPTAR LA MISIÓN</button>
+      </div>
+    </section>
+
+    <!-- ===== LABORATORIO (HUB) ===== -->
+    <section class="screen" id="scr-hub">
+      <div class="panel hub">
+        <h2>🧪 LABORATORIO DEL RIFT</h2>
+        <div class="hub-top">
+          <div class="res">Datos de investigación: <b id="hubResearch">0</b> 🧪</div>
+          <div class="hub-play">
+            <label>Reino inicial <select id="realmSel"></select></label>
+            <button class="btn big" id="btnPlay">⚔ INICIAR RUN</button>
+            <button class="btn" id="btnDaily">🗓️ Desafío diario</button>
+          </div>
+        </div>
+        <h3>Mejoras permanentes</h3>
+        <div class="ups" id="upgrades"></div>
+        <div class="hub-row">
+          <button class="btn" id="btnHubNexus">🧠 Ver a NEXUS</button>
+          <button class="btn" id="btnHowto">📖 Cómo se juega</button>
+          <button class="btn" id="btnFull">⛶ Pantalla completa</button>
+        </div>
+        <details class="opts"><summary>⚙️ Opciones</summary>
+          <label><input type="checkbox" id="optMusic"> Música</label>
+          <label><input type="checkbox" id="optSfx"> Efectos</label>
+          <label><input type="checkbox" id="optShake"> Vibración de pantalla</label>
+          <button class="btn danger" id="btnResetAI">Reiniciar NEXUS</button>
+        </details>
+        <h3>📚 Códice de villanos</h3>
+        <div id="codex" class="codex-list"></div>
+        <p class="small" id="hubStats"></p>
+      </div>
+    </section>
+
+    <!-- ===== CÓMO JUGAR ===== -->
+    <section class="screen" id="scr-howto">
+      <div class="panel">
+        <h2>📖 CÓMO SE JUEGA</h2>
+        <ul class="howto">
+          <li><b>Objetivo de cada reino:</b> consigue 3 <span class="c-core">◆ Núcleos de Fase</span> de las salas <span class="c-elite">ÉLITE</span> (amarillas en el mapa) para abrir la puerta sellada del villano.</li>
+          <li><b>Salas:</b> las puertas se cierran hasta que eliminas a todos. Las salas sin daño dan bonus.</li>
+          <li><b>Misiones secundarias:</b> rescata al investigador (azul), calibra 3 pilones golpeándolos (celeste) y completa la cacería.</li>
+          <li><b>Terminal</b> (verde): gasta ⚡ electrones en vida o mods.</li>
+          <li><b>Subes de nivel</b> con ⚡ y eliges 1 de 3 mods. Combínalos para builds rotas.</li>
+          <li><b>Combos:</b> encadena eliminaciones para multiplicar los electrones.</li>
+          <li><b>Dash:</b> te hace invulnerable un instante. Úsalo para atravesar balas, ondas y rayos.</li>
+          <li><b>Tu hoja desvía balas</b> pequeñas. El rayo se auto-apunta un poco hacia donde miras.</li>
+          <li><b>Suelo amarillo</b> pulsa: daña cuando brilla.</li>
+          <li><b>Al morir</b> conservas los 🧪 Datos de Investigación para mejoras permanentes.</li>
+          <li><b>Tras el 7º reino</b> empieza un nuevo <b>Ciclo</b>: los villanos se fusionan y roban patrones entre ellos. Es infinito.</li>
+          <li><b>NEXUS</b> (Tab o botón 🧠): mira en tiempo real cómo la IA aprende de ti.</li>
+        </ul>
+        <button class="btn big" id="btnHowtoBack">VOLVER</button>
+      </div>
+    </section>
+
+    <!-- ===== SUBIDA DE NIVEL ===== -->
+    <section class="screen" id="scr-level">
+      <div class="panel lvl">
+        <h2 id="levelTitle">NIVEL 2</h2>
+        <div class="cards" id="cards"></div>
+        <button class="btn" id="rerollBtn">🎲 Re-simular</button>
+      </div>
+    </section>
+
+    <!-- ===== DIÁLOGO ===== -->
+    <section class="screen" id="scr-dialog">
+      <div class="panel dlg"><h2 id="dlgTitle"></h2><div id="dlgBody"></div><div class="dlg-btns" id="dlgBtns"></div></div>
+    </section>
+
+    <!-- ===== PAUSA ===== -->
+    <section class="screen" id="scr-pause">
+      <div class="panel">
+        <h2>⏸ PAUSA</h2>
+        <h3>Misiones</h3><ul class="quests" id="questLog"></ul>
+        <h3>Mods activos</h3><div class="mods" id="modList"></div>
+        <h3>☣ Mutaciones del Rift (elegidas por NEXUS)</h3><ul class="muts" id="mutList"></ul>
+        <div class="hub-row">
+          <button class="btn big" id="btnResume">▶ CONTINUAR</button>
+          <button class="btn" id="btnPauseNexus">🧠 NEXUS</button>
+          <button class="btn danger" id="btnAbandon">Abandonar run</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== NEXUS ===== -->
+    <section class="screen" id="scr-nexus">
+      <div class="panel nexus">
+        <h2>🧠 NEXUS · DIRECTOR DE IA</h2>
+        <p class="small">NEXUS combina <b>Q-learning</b> (cada especie aprende tácticas contra ti), un <b>algoritmo genético</b> (las variantes que más te dañan se reproducen), un <b>bandido multibrazo</b> (elige las especies y los patrones de jefe que más te cuestan) y un <b>rating Elo</b> con trinquete: la dificultad mínima nunca baja.</p>
+        <div id="nexusBody"></div>
+        <button class="btn big" id="btnNexusClose">CERRAR</button>
+      </div>
+    </section>
+
+    <!-- ===== MUERTE ===== -->
+    <section class="screen" id="scr-dead">
+      <div class="panel dead">
+        <h2 class="red">SEÑAL PERDIDA</h2>
+        <div id="deadStats"></div>
+        <div class="hub-row">
+          <button class="btn big" id="btnDeadRetry">↻ REINTENTAR</button>
+          <button class="btn" id="btnDeadHub">🧪 Laboratorio</button>
+        </div>
+      </div>
+    </section>
+
+    <div id="toast"></div>
+    <button id="btnPauseBtn" class="pause-btn" aria-label="Pausa">II</button>
+  </div>
+
+  <!-- controles táctiles -->
+  <div id="touchzone"></div>
+  <div id="joy"><div id="knob"></div></div>
+  <div id="tbtns">
+    <button data-btn="dash" class="tb dash">DASH</button>
+    <button data-btn="bolt" class="tb bolt">⚡</button>
+    <button data-btn="atk" class="tb atk">⚔</button>
+  </div>
+  <div id="rotate">↻ Gira tu teléfono para jugar mejor</div>
+
+  <script src="js/audio.js"></script>
+  <script src="js/ai.js"></script>
+  <script src="js/world.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
