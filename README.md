@@ -136,4 +136,6 @@ js/game.js      motor: física, combate, IA de enemigos/jefes, render, HUD, men�
 sw.js           modo offline (PWA)
 ```
 
+Guía completa para desarrolladores y LLMs: **[AGENTS.md](AGENTS.md)**.
+
 Todo se guarda en `localStorage` (`riftvolt.meta.v1` y `riftvolt.nexus.v1`). Para empezar de cero: Laboratorio → Opciones → *Reiniciar NEXUS*.
