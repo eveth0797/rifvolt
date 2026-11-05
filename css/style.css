@@ -116,3 +116,8 @@ body.touch[data-mode="play"] #tbtns { display: grid; position: fixed; right: max
 .pips { display: flex; gap: 3px; margin: 3px 0; }
 .pips i { width: 10px; height: 8px; border: 1px solid var(--gold); display: inline-block; }
 .pips i.on { background: var(--gold); box-shadow: 0 0 4px var(--gold); }
+
+.achs { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+.ach { background: #12102e; border: 1px solid #3a3a7a; padding: 6px; text-align: center; opacity: .45; filter: grayscale(1); }
+.ach.got { opacity: 1; filter: none; border-color: var(--gold); box-shadow: 0 0 8px #ffd60a55; }
+.ach span { font-size: 24px; display: block; } .ach b { font-family: "Press Start 2P", monospace; font-size: 8px; color: var(--gold); display: block; margin: 4px 0; } .ach small { font-size: 15px; color: var(--muted); }

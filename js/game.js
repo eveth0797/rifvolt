@@ -405,7 +405,7 @@
     room.cleared = true; run.roomsCleared++;
     if (roomStats) {
       const r = NX.roomResult({ D: room.D, hpLostFrac: Math.max(0, roomStats.hp0 - P.hp) / P.maxHp, died: false, seconds: run.time - roomStats.t0 });
-      if (roomStats.hits === 0 && !isBoss) { txt(P.x, P.y - 16, "¡SIN DAÑO! +5", "#ffd60a", true); run.electrons += 5; run.score += 100; }
+      if (roomStats.hits === 0 && !isBoss) { META.noHit = (META.noHit || 0) + 1; txt(P.x, P.y - 16, "¡SIN DAÑO! +5", "#ffd60a", true); run.electrons += 5; run.score += 100; }
       roomStats = null;
     }
     setDoors("open"); AU.sfx("door"); AU.setIntensity(0.6); setTimeout(saveRun, 0);
@@ -481,6 +481,31 @@
     ]);
   }
 
+  /* ================= LOGROS ================= */
+  const ACH = [
+    { id: "blood", i: "⚔️", n: "Primer contacto", d: "Elimina a tu primer enemigo", t: () => META.kills >= 1 },
+    { id: "k500", i: "💀", n: "Cortocircuito", d: "500 eliminaciones en total", t: () => META.kills >= 500 },
+    { id: "k3000", i: "☠️", n: "Apagón masivo", d: "3000 eliminaciones en total", t: () => META.kills >= 3000 },
+    { id: "c10", i: "🔥", n: "En resonancia", d: "Combo ×10", t: () => run && run.bestCombo >= 10 },
+    { id: "c40", i: "🌋", n: "Ferroresonancia", d: "Combo ×40", t: () => run && run.bestCombo >= 40 },
+    { id: "nohit", i: "🛡️", n: "Intocable", d: "Limpia una sala sin recibir daño", t: () => (META.noHit || 0) >= 1 },
+    { id: "nohit50", i: "👻", n: "Fantasma del rift", d: "50 salas sin daño", t: () => (META.noHit || 0) >= 50 },
+    { id: "lvl10", i: "⭐", n: "Sobrecargada/o", d: "Nivel 10 en una run", t: () => run && run.level >= 10 },
+    { id: "mods8", i: "🧩", n: "Build rota", d: "8 mods distintos en una run", t: () => run && Object.keys(run.mods).length >= 8 },
+    { id: "rich", i: "💰", n: "Banco de electrones", d: "300 ⚡ a la vez", t: () => run && run.electrons >= 300 },
+    { id: "boss1", i: "👑", n: "Cazavillanos", d: "Derrota a tu primer villano", t: () => Object.keys(META.bosses).length >= 1 },
+    { id: "realm5", i: "🗺️", n: "Explorador/a del Voltverso", d: "Llega al reino 5", t: () => META.bestRealm >= 4 },
+    { id: "agent", i: "🤖", n: "Política derrotada", d: "Vence a PPO-Ω", t: () => !!META.bosses.agent },
+    { id: "blackout", i: "🌑", n: "Black Start", d: "Vence a El Apagón", t: () => !!META.bosses.blackout },
+    { id: "cycle2", i: "♾️", n: "Bucle infinito", d: "Entra al Ciclo 2", t: () => META.bestCycle >= 1 },
+    { id: "loyal", i: "🧠", n: "Sujeto de estudio", d: "Juega 7 sesiones (NEXUS te conoce bien)", t: () => NX.state().sessions >= 7 }
+  ];
+  META.ach = META.ach || {};
+  function checkAch() {
+    ACH.forEach(a => { if (!META.ach[a.id] && a.t()) { META.ach[a.id] = Date.now(); saveMeta(); toast(`🏆 LOGRO: ${a.n}`); AU.sfx("quest"); run && (run.research += 3); } });
+  }
+  let achT = 0;
+
   /* ================= UPDATE ================= */
   function update(dt) {
     const inp = readInput();
@@ -489,6 +514,7 @@
     if (mode !== "play") return;
     if (hitstop > 0) { hitstop -= dt; return; }
     run.time += dt; META.playSec += dt; time += dt;
+    if ((achT -= dt) <= 0) { achT = 1; checkAch(); }
     if (transition > 0) transition -= dt;
     if (banner) { banner.t -= dt; if (banner.t <= 0) banner = null; }
     if (run.comboT > 0) { run.comboT -= dt; if (run.comboT <= 0) run.combo = 0; }
@@ -1007,6 +1033,7 @@
     else if (k === "bomber") { g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); g.fillStyle = "#000"; g.fillRect(x - 1, y - 4, 2, 8); g.fillRect(x - 4, y - 1, 8, 2); }
     g.shadowBlur = 0;
     // ojos: acción de la IA (debug visual sutil)
+    if (["turret", "shooter", "blinker", "bomber"].includes(k) && e.cd < 0.35 && e.cd > -0.5 && e.act === 4) { g.strokeStyle = `rgba(255,255,255,${0.5 + 0.5 * Math.sin(time * 30)})`; g.beginPath(); g.arc(x, y, r + 3 + Math.max(0, e.cd) * 10, 0, 7); g.stroke(); }
     if (e.hp < e.maxHp) { g.fillStyle = "#000"; g.fillRect(x - r, y - r - 4, r * 2, 2); g.fillStyle = "#ff4d6d"; g.fillRect(x - r, y - r - 4, r * 2 * clamp(e.hp / e.maxHp, 0, 1), 2); }
     if (e.elite) { g.fillStyle = "#ffd60a"; g.font = `5px ${FONT}`; g.textAlign = "center"; g.fillText("ÉLITE", x, y - r - 6); }
   }
@@ -1127,6 +1154,8 @@
     { const sv = savedRun(); const b = $("#btnContinue"); b.hidden = !sv; if (sv) b.textContent = `▶ CONTINUAR (${W.REALMS[sv.run.realm].name}${sv.run.cycle ? " · C" + (sv.run.cycle + 1) : ""} · Nv ${sv.run.level})`; }
     $("#upgrades").innerHTML = W.UPGRADES.map(u => { const l = upLvl(u.id), cost = Math.round(u.base * Math.pow(1.6, l)); return `<button class="up" data-up="${u.id}" ${l >= u.max || META.research < cost ? "disabled" : ""}><b>${u.name}</b><small>${u.desc}</small><span class="pips">${Array.from({ length: u.max }, (_, i) => `<i class="${i < l ? "on" : ""}"></i>`).join("")}</span><em>${l >= u.max ? "MÁX" : "🧪 " + cost}</em></button>`; }).join("");
     $("#realmSel").innerHTML = W.REALMS.map((r, i) => `<option value="${i}" ${i >= META.unlocked ? "disabled" : ""}>${i + 1}. ${r.name}${i >= META.unlocked ? " 🔒" : ""}</option>`).join("");
+    $("#achList").innerHTML = ACH.map(a => `<div class="ach ${META.ach[a.id] ? "got" : ""}" title="${a.d}"><span>${a.i}</span><b>${a.n}</b><small>${a.d}</small></div>`).join("");
+    $("#achCount").textContent = `${Object.keys(META.ach).length}/${ACH.length}`;
     $("#hubStats").innerHTML = `Runs: ${META.runs} · Muertes: ${META.deaths} · Eliminaciones: ${META.kills} · Mejor ciclo: ${META.bestCycle + 1} · Récord: ${META.highScore} · Tiempo: ${Math.round(META.playSec / 60)} min`;
     $("#codex").innerHTML = W.REALMS.map(r => `<details ${META.codex[r.boss] === "known" ? "" : "class='locked'"}><summary>${META.codex[r.boss] === "known" ? "📘" : META.codex[r.boss] ? "👁️" : "🔒"} ${META.codex[r.boss] ? r.bossName : "???"} ${META.bosses[r.boss] ? `· derrotado ×${META.bosses[r.boss]}` : ""}</summary><p>${META.codex[r.boss] === "known" ? r.codex : "Derrota a este villano para desbloquear su registro de investigación."}</p></details>`).join("");
   }
